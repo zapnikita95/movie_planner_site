@@ -87,8 +87,8 @@ assert(!regularTile.includes('home-evening-badge'), 'other rails do not render t
 assert((railSrc.match(/showBadge: railId === "evening-from-base"/g) || []).length === 2, 'badge is wired for append and prepend');
 
 const indexSrc = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
-assert(indexSrc.includes("var V='20261001dailyFacts1'"), 'script asset version is pinned');
-assert(indexSrc.includes('/style-v2.css?v=20261001dailyFacts1'), 'style asset version is pinned');
+assert(indexSrc.includes("var V='20261004dailyGap1'"), 'script asset version is pinned');
+assert(indexSrc.includes('/style-v2.css?v=20261004dailyGap1'), 'style asset version is pinned');
 
 const factsHtml = retentionSandbox.retentionDailyFactsHtml({
   rating_kp: 8.2,

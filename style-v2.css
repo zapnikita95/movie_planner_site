@@ -13416,6 +13416,256 @@ body.coins-shop-open { overflow: hidden; }
 .home-group-suggestions .home-dash-block { margin-bottom: 1rem; }
 .home-suggestion-row { cursor: pointer; }
 
+/* Активность друзей: одна рамка секции, реакции в одну строку. */
+.home-friends-activity-root { width: 100%; overflow: visible; }
+.home-friends-block,
+.home-friends-empty {
+  margin: 0 0 20px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  overflow: visible;
+}
+.home-friends-block { padding: 14px 12px 12px; }
+.home-friends-empty {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+.home-friends-empty h3 { margin: 0 0 4px; font-size: 16px; }
+.home-friends-empty p { margin: 0; color: var(--text-muted); font-size: 14px; }
+.home-friends-empty .btn { grid-column: 1 / -1; }
+.home-friend-feed {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  overflow: visible;
+}
+.home-friend-card {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-primary, #f5f5f7);
+  overflow: visible;
+}
+.home-friends-block .home-friend-card,
+.home-friends-block .home-friend-card--high,
+.home-friends-block .home-friend-card--gap,
+.home-friends-block .home-friend-card--unseen {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.home-friend-card-header {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+.home-friend-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+.home-friend-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.home-friend-card-summary { min-width: 0; }
+.home-friend-card-main { min-width: 0; padding-top: 8px; overflow: visible; }
+.home-friend-reason {
+  display: inline-block;
+  margin-bottom: 4px;
+  color: var(--accent, #ff5aa5);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.home-friend-card-summary p { margin: 0; font-size: 14px; line-height: 1.38; }
+.home-friend-film-title {
+  display: block;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent, #ff5aa5);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+.home-friend-owner-comment {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary, #e4e4e7);
+  font-size: 12px;
+  line-height: 1.42;
+}
+.home-friend-social {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 4px;
+  width: 100%;
+  margin-top: 8px;
+  overflow: visible;
+}
+.home-friend-social-reactions {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
+}
+.home-friend-social-more { position: relative; flex: 0 0 auto; }
+.home-friend-social-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 3px;
+  min-width: 34px;
+  min-height: 30px;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted, #a1a1aa);
+  cursor: pointer;
+}
+.home-friend-social-btn:hover,
+.home-friend-social-btn.is-active {
+  border-color: rgba(255, 90, 165, 0.35);
+  background: rgba(255, 90, 165, 0.12);
+  color: var(--accent, #ff5aa5);
+}
+.home-friend-social-btn b { min-width: 7px; font-size: 11px; font-weight: 700; }
+.home-friend-comment-btn { margin-left: auto; }
+.home-friend-reaction-pop {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: max-content;
+  max-width: min(220px, calc(100vw - 16px));
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: var(--bg-elevated, #1c1c24);
+}
+.home-friend-reaction-pop[hidden] { display: none !important; }
+.home-friend-card.is-reactions-open { position: relative; z-index: 8; }
+.home-friend-ctas { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.home-friend-cta {
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.055);
+  color: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.home-friend-quiet { margin: 4px 0 0; color: var(--text-muted); font-size: 14px; }
+.home-activity-comments-overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 5100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.68);
+}
+.home-activity-comments-dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  max-height: calc(100% - 16px);
+  overflow: hidden;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: var(--bg-elevated, #191920);
+  color: var(--text-primary, #f5f5f7);
+}
+.home-activity-comments-dialog h3 { margin: 0 36px 16px 0; }
+.home-activity-comments-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 28px;
+  cursor: pointer;
+}
+.home-activity-comments-list {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 9px;
+  min-height: 80px;
+  max-height: 350px;
+  overflow: auto;
+}
+.home-activity-comment { padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.055); }
+.home-activity-comment strong { font-size: 12px; }
+.home-activity-comment p { margin: 4px 0 0; white-space: pre-wrap; }
+.home-activity-comments-form { display: grid; flex: 0 0 auto; gap: 8px; margin-top: 14px; }
+.home-activity-comments-form textarea { box-sizing: border-box; width: 100%; max-height: 120px; resize: none; }
+.home-activity-comments-form-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.home-activity-comments-form-foot small { color: var(--text-muted, #a1a1aa); }
+.home-activity-comment-submit {
+  min-height: 42px;
+  padding: 9px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 11px;
+  background: #f4f4f5;
+  color: #18181b;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.home-activity-comment-submit:disabled { opacity: 0.6; cursor: default; }
+@media (min-width: 901px) {
+  .home-friends-block { padding: 18px 20px 14px; }
+  .home-friend-feed { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 28px; }
+  .home-friends-empty { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .home-friends-empty .btn { grid-column: auto; width: auto; }
+}
+@media (max-width: 720px) {
+  .home-activity-comments-overlay { align-items: flex-end; padding: 8px 8px 0; }
+  .home-activity-comments-dialog {
+    width: 100%;
+    max-height: calc(100% - 4px);
+    padding: 18px 16px max(12px, env(safe-area-inset-bottom));
+    border-radius: 16px 16px 0 0;
+  }
+}
+
 .inbox-tabs {
   display: flex;
   flex-wrap: wrap;
